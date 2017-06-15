@@ -12,16 +12,16 @@ from keras import backend as K
 def intersection(x1, y1, w1, h1,x2, y2, w2, h2):
     # Calculate width of intersecting region
     l1 = x1 - w1 / 2.0; l2 = x2 - w2 / 2.0;
-    l = max(l1,l2);
+    l = max(l1,l2)
     r1 = x1 + w1 / 2.0; r2 = x2 + w2 / 2.0;
     r = min(r1, r2)
     w = r - l
     # Calculate height of intersecting region
     b1 = y1 - h1 / 2.0; b2 = y2 - h2 / 2.0;
-    b = max(b1,b2);
+    b = max(b1, b2)
     t1 = y1 + h1 / 2.0; t2 = y2 + h2 / 2.0;
     t = min(t1, t2)
-    h = b - t
+    h = t - b
     return w*h if (w >= 0 and h >= 0) else 0
 
 # Calculate union of two bounding boxes
@@ -148,3 +148,9 @@ if __name__ == "__main__":
     yolo = TinyYoloNet(sess)
     yolo.net.summary()
     yolo.set_weights('./weights/yolo-tiny.weights')
+
+    # Test set operations
+    x1 = 0; y1 = 0; w1 = 4; h1 = 4;
+    x2 = 2; y2 = 2; w2 = 4; h2 = 4;
+
+    print ('Test union of (0,0,4,4), (2,2,4,4), Should be 28, results: %d' % union(x1,y1,w1,h1,x2,y2,w2,h2))
