@@ -1,0 +1,5 @@
+weights/*
+data/*
+
+!weights/.gitkeep
+!data/.gitkeep
