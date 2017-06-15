@@ -8,10 +8,44 @@ from keras.layers import Conv2D, MaxPooling2D
 from keras.models import Sequential
 from keras import backend as K
 
+# Calculate intersection of two bounding boxes
+def intersection(x1, y1, w1, h1,x2, y2, w2, h2):
+    # Calculate width of intersecting region
+    l1 = x1 - w1 / 2.0; l2 = x2 - w2 / 2.0;
+    l = max(l1,l2);
+    r1 = x1 + w1 / 2.0; r2 = x2 + w2 / 2.0;
+    r = min(r1, r2)
+    w = r - l
+    # Calculate height of intersecting region
+    b1 = y1 - h1 / 2.0; b2 = y2 - h2 / 2.0;
+    b = max(b1,b2);
+    t1 = y1 + h1 / 2.0; t2 = y2 + h2 / 2.0;
+    t = min(t1, t2)
+    h = b - t
+    return w*h if (w >= 0 and h >= 0) else 0
+
+# Calculate union of two bounding boxes
+def union(x1, y1, w1, h1, x2, y2, w2, h2):
+    return (w1*h1 + w2*h2 - intersection(x1,y1,w1,h1,x2,y2,w2,h2))
+
+# Perform intersection over union in order to evaluate our bounding boxes
+def iou(x1, y1, w1, h1, x2, y2, w2, h2):
+    return (intersection(x1,y1,w1,h1,x2,y2,w2,h2) / union(x1,y1,w1,h1,x2,y2,w2,h2))
+
 # Using Tiny Yolo Net Architecture for pedestrian and car detection
 class TinyYoloNet:
     # Using TensorFlow Backend for dimensions
     def __init__(self, sess):
+        # Output Parameters
+        self.grid_len = 7           # Length of X and Y axis for grid boxes
+        self.num_classes = 20       # Number of classes from the trained VOC
+        self.num_conf_per_box = 2   # Confidences per box
+
+        self.grid_cells = self.grid_len * self.grid_len                     # Should be 49
+        self.probability_len = self.grid_cells * self.num_classes           # Should be 980, 20 class probabilities per grid cell
+        self.confidence_len = self.grid_cells * self.num_conf_per_box       # Should be 98, 2 Confidences per grid cell
+        self.boxes_len = 1470 - self.probability_len - self.confidence_len  # Remaining are box coordinates
+
         # Set the graph
         self.graph = sess.graph
         self.sess = sess
@@ -103,6 +137,10 @@ class TinyYoloNet:
                     i += np.prod(weight_shape)
                     layer.set_weights([weights, bias])
         return
+
+    # Process an image
+    def process(self, image):
+        yolo_out = self.net.predict(image)
 
 if __name__ == "__main__":
     sess = tf.Session()

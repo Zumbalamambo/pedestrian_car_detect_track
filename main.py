@@ -4,13 +4,21 @@ import tensorflow as tf
 import cv2
 from keras import backend as K
 
+# Define Flags
+flags = tf.app.flags
+FLAGS = flags.FLAGS
+
+flags.DEFINE_string('video', None, 'Video file to run through the network')
+flags.DEFINE_string('image', None, 'Image file to run through the network')
+
 # Will load and image and pre-process it for yolo_net
-def load_image(im, shape):
+def proc_load_image(im, shape):
     image = cv2.imread(im)
     image = cv2.resize(image, shape)
     image = np.expand_dims(image, axis=0)
     return image
 
+# Run the network here
 if __name__ == "__main__":
     # Make the Session
     sess = tf.Session()
@@ -22,7 +30,18 @@ if __name__ == "__main__":
     yolo.net.summary()
     yolo.set_weights('./weights/yolo-tiny.weights')
 
+    """
+    if FLAGS.video != None:
+        print('Processing video...')
+    elif FLAGS.image != None:
+        print('Processing video...')
+        # Test
+        test_im = proc_load_image('./data/1.jpg', (448,448))
+    else:
+        print('No file specified')
+    """
+
     # Test
-    test_im = load_image('./data/1.jpg', (448,448))
-    out = yolo.net.predict(test_im)
-    print(out)
+    test_im = proc_load_image('./data/1.jpg', (448,448))
+
+    boxes = yolo.process(test_im)
