@@ -84,7 +84,7 @@ class TinyYoloNet:
         np_data = np_data[4:]
 
         # Just in case
-        K.set_session(sess)
+        K.set_session(self.sess)
         with self.graph.as_default():
             # Iterate through the layers and assign each convolutional layer the weights and biases
             i = 0

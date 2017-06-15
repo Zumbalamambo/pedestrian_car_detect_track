@@ -4,6 +4,13 @@ import tensorflow as tf
 import cv2
 from keras import backend as K
 
+# Will load and image and pre-process it for yolo_net
+def load_image(im, shape):
+    image = cv2.imread(im)
+    image = cv2.resize(image, shape)
+    image = np.expand_dims(image, axis=0)
+    return image
+
 if __name__ == "__main__":
     # Make the Session
     sess = tf.Session()
@@ -15,6 +22,7 @@ if __name__ == "__main__":
     yolo.net.summary()
     yolo.set_weights('./weights/yolo-tiny.weights')
 
-    # Run the network
-    cv2.
-    yolo.net.predict()
+    # Test
+    test_im = load_image('./data/1.jpg', (448,448))
+    out = yolo.net.predict(test_im)
+    print(out)
