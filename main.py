@@ -10,7 +10,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string('video', None, 'Video file to run through the network.')
 flags.DEFINE_string('image', None, 'Image file to run through the network.')
-flags.DEFINE_string('record', False, 'Output of recorded yolo.')
+flags.DEFINE_string('record', None, 'Output of recorded yolo.')
 
 
 # Will load and image and pre-process it for yolo_net
