@@ -23,6 +23,7 @@ def proc_load_image(im, shape):
     return image
 
 def draw_box(boxes,im):
+    proc_boxes = []
     for b in boxes:
         h, w, _ = im.shape
         bx = b[0]; by = b[1]; bw = b[2]; bh = b[3];
@@ -38,8 +39,9 @@ def draw_box(boxes,im):
         thick = int((h + w) // 150)
 
         cv2.rectangle(im, (left, top), (right, bot), (255,0,0), thick)
+        proc_boxes.append((left,top,right,bot))
 
-    return im
+    return im, proc_boxes
 
 # Run the network here
 if __name__ == "__main__":
@@ -66,29 +68,28 @@ if __name__ == "__main__":
             # Yolo Processing
             proc_frame = proc_load_image(frame, (448,448))
             boxes = yolo.process(proc_frame, thresholds=[0.17,0.17], classes=[6,14], iou_threshold=0.4)
-            boxed_frame = draw_box(boxes,cv2.resize(frame,(488,488)))
+            boxed_frame, boxes = draw_box(boxes,cv2.resize(frame,(488,488)))
 
             # Save to file
             if FLAGS.record != None:
                 out.write(boxed_frame)
 
             # Display
-            #cv2.imshow('Yolo Out', boxed_frame)
-            """
+            cv2.imshow('Yolo Out', boxed_frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-            """
+
         print('Finished!')
         cap.release()
         cv2.destroyAllWindows()
 
     elif FLAGS.image != None:
-        print('Processing video...')
+        print("Processing image")
         # Test
         proc_im = proc_load_image(cv2.imread(FLAGS.image), (448,448))
         im = cv2.resize(cv2.imread(FLAGS.image), (448,448))
         boxes = yolo.process(proc_im, thresholds=[0.1,0.1], classes=[6,14], iou_threshold=0.4)
-        boxed_im = draw_box(boxes,im)
-        plt.imsave('out.jpg', boxed_im)
+        boxed_im, boxes = draw_box(boxes,im)
+        cv2.imwrite('out.jpg', cv2.cvtColor(boxed_im,cv2.COLOR_BGR2RGB))
     else:
         print('No file specified')
