@@ -139,8 +139,8 @@ class TinyYoloNet:
 
     # Process an image
     # Output: [[box_info_0], ..., [box_info_n]]
-    # box_info_i = [x,y,w,h,c,prob, label]
-    def process(self, image, threshold_ious=[0.1,0.1], classes=[6,14]):
+    # box_info_i = [x,y,w,h,c,[(label, probability)]]
+    def process(self, image, thresholds =[0.1,0.1], classes=[6,14], iou_threshold=0.4):
         yolo_out = self.net.predict(image)[0]
 
         # Split the output vector into the corresponding data formats
@@ -156,7 +156,7 @@ class TinyYoloNet:
                 p = probabilities[grid_cell, :] * confidences[grid_cell,i]
 
                 # Filter out box that doesn't meet threshold
-                threshold_res = [ (label, p[label]) for label, threshold in zip(classes, threshold_ious) if p[label] >= threshold]
+                threshold_res = [ [label, p[label]] for label, threshold in zip(classes, thresholds) if p[label] >= threshold]
 
                 # Sort by probability value in tuple
                 threshold_res.sort(key=lambda x: x[1], reverse=True)
@@ -177,8 +177,18 @@ class TinyYoloNet:
 
         # Merge boxes now
         # Must merge with multi-class labels
+        # Greedy approach, get the maximum probability within the boxes probability list
+        boxes.sort(key=lambda x:x[5][0][1],reverse=True)
+        for i, b1 in enumerate(boxes):
+            if b1[5][0][0] < 0:
+                continue
+            for j, b2 in enumerate(boxes[i+1:]):
+                # NOTE: Better to perform an actual merge instead of lazily removing a box
+                iou_res = iou(b1[0],b1[1],b1[2],b1[3], b2[0],b2[1],b2[2],b2[3])
+                if iou_res >= iou_threshold:
+                    b2[5][0][0] = -100  # Means invalid label
 
-        return boxes
+        return [box for box in boxes if box[5][0][0] > 0]
 
 # Run the network here
 if __name__ == "__main__":
