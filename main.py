@@ -72,8 +72,11 @@ def init_tracker(boxes, frame, alg):
 
     # Create and initialize one tracker for each object
     for i in range(len(boxes)):
+        # Initialize the bounding box in tracker format
+        bbox = (boxes[i][0], boxes[i][1], boxes[i][2], boxes[i][3])
+
         trackers.append(cv2.Tracker_create(alg))
-        ok = trackers[i].init(frame, boxes[i])
+        ok = trackers[i].init(frame, bbox)
 
         if(ok == False):
             print("Couldn't initialize tracker for object ", i)
