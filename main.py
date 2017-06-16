@@ -175,7 +175,7 @@ if __name__ == "__main__":
             if tracking == 0:
                 boxed_frame, boxes = draw_box(boxes,cv2.resize(frame,(488,488)))
             else:
-                boxed_frame, proc_boxes = draw_tracker_box(boxes, frame)
+                boxed_frame, proc_boxes = draw_tracker_box(boxes, cv2.resize(frame,(488,488)))
                 #print ("Tracker out: ", proc_boxes)
             cv2.imshow('Yolo Out', boxed_frame)
 
