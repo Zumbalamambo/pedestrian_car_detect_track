@@ -13,7 +13,7 @@ flags.DEFINE_string('video', None, 'Video file to run through the network.')
 flags.DEFINE_string('image', None, 'Image file to run through the network.')
 flags.DEFINE_string('record', None, 'Output of recorded yolo.')
 flags.DEFINE_string('alg', 0, 'Tracking algorithm to run.')
-flags.DEFINE_string('detect_rate', 10, 'Rerun detection after this many frames')
+flags.DEFINE_string('detect_rate', 15, 'Rerun detection after this many frames')
 flags.DEFINE_string('tracking', 1, 'Enable/disable tracking')
 
 # define tracking algorithm options
@@ -93,8 +93,8 @@ def init_tracker(boxes, frame, alg):
 
         if(ok == False):
             print("Couldn't initialize tracker for object ", i)
-        else:
-            print("Initialized tracker for object", i)
+        #else:
+        #    print("Initialized tracker for object", i)
 
 
 def track_objects(boxes, frame):
@@ -155,7 +155,7 @@ if __name__ == "__main__":
             if tracking == 0 or frame_num % detect_rate == 0 or frame_num == 1:
                 #print ("yolo bitches")
                 proc_frame = proc_load_image(frame, (448,448))
-                boxes = yolo.process(proc_frame, thresholds=[0.17,0.17], classes=[6,14], iou_threshold=0.4)
+                boxes = yolo.process(proc_frame, thresholds=[0.12,0.12], classes=[6,14], iou_threshold=0.4)
 
                 if tracking == 1:
                     _, boxes = draw_box(boxes,cv2.resize(frame,(488,488)))
