@@ -3,6 +3,7 @@ import tiny_yolo_net
 import tensorflow as tf
 import cv2
 import keras
+import sys
 
 # Define Flags
 flags = tf.app.flags
@@ -11,6 +12,15 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('video', None, 'Video file to run through the network.')
 flags.DEFINE_string('image', None, 'Image file to run through the network.')
 flags.DEFINE_string('record', None, 'Output of recorded yolo.')
+flags.DEFINE_string('alg', 0, 'Tracking algorithm to run.')
+flags.DEFINE_string('detect_rate', 50, 'Rerun detection after this many frames')
+
+# define tracking algorithm options
+tracker_type = ["MIL", "BOOSTING", "MEDIANFLOW", "TLD", "KCF"]
+
+# List of tracker objects
+trackers = []
+num_objects = 0
 
 
 # Will load and image and pre-process it for yolo_net
@@ -21,6 +31,7 @@ def proc_load_image(im, shape):
     image = 2*(image/255.0) - 1
     image = np.expand_dims(image, axis=0)
     return image
+
 
 def draw_box(boxes,im):
     proc_boxes = []
@@ -43,53 +54,121 @@ def draw_box(boxes,im):
 
     return im, proc_boxes
 
+
+def reset_tracker(boxes, frame):
+	for i in range(num_objects):
+		ok = trackers[i].init(frame, boxes[i])
+
+		if(ok == False):
+			print("Couldn't initialize tracker for object ", i)
+		else:
+			print("Initialized tracker for object", i)
+
+
+def init_tracker(boxes, frame, alg):
+	num_objects = len(boxes)
+
+	# Create one tracker for each object
+	for i in range(num_objects):
+		trackers.append(cv2.Tracker_create(alg))
+
+	# Initialize tracker with first frame for each object
+	reset_tracker(boxes, frame)
+
+
+def track_objects(boxes, frame):
+	# Update tracker
+	for i in range(num_objects):
+		ok, boxes[i] = trackers[i].update(frame)
+
+		'''
+		if ok:
+			p1 = (int(boxes[i][0]), int(boxes[i][1]))
+			p2 = (int(boxes[i][0] + boxes[i][2]), int(boxes[i][1] + boxes[i][3]))
+			cv2.rectangle(frame, p1, p2, (0,0,255), 5)
+		else:
+			print("Cannot locate object ", i)
+		'''
+
+		if not ok:
+			print("Cannot locate object ", i)
+	
+	return boxes
+
+
+
 # Run the network here
 if __name__ == "__main__":
-    # Set the network
-    print('Instantiating Tiny Yolo Net...')
-    yolo = tiny_yolo_net.TinyYoloNet()
-    yolo.set_weights('./weights/yolo-tiny.weights')
 
-    if FLAGS.video != None:
-        print('Processing video...')
-        cap = cv2.VideoCapture(FLAGS.video)
+	# Set the network
+	print('Instantiating Tiny Yolo Net...')
+	yolo = tiny_yolo_net.TinyYoloNet()
+	yolo.set_weights('./weights/yolo-tiny.weights')
 
-        # Set Recording parameters
-        if FLAGS.record != None:
-            fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
-            out = cv2.VideoWriter(FLAGS.record, fourcc, 29.0, (488,488))
+	# Determine which tracking algorithm to run
+	alg = tracker_type[FLAGS.alg]
+	print('Using tracking algorithm: ', alg)
 
-        while(cap.isOpened()):
-            ret, frame = cap.read()
-            # Break if no more
-            if ret == False:
-                break
+	detect_rate = FLAGS.detect_rate
 
-            # Yolo Processing
-            proc_frame = proc_load_image(frame, (448,448))
-            boxes = yolo.process(proc_frame, thresholds=[0.17,0.17], classes=[6,14], iou_threshold=0.4)
-            boxed_frame, boxes = draw_box(boxes,cv2.resize(frame,(488,488)))
+	if FLAGS.video != None:
+		print('Processing video...')
+		cap = cv2.VideoCapture(FLAGS.video)
 
-            # Save to file
-            if FLAGS.record != None:
-                out.write(boxed_frame)
+		boxes = []
+		boxed_frame = None
+		frame_num = 0
 
-            # Display
-            cv2.imshow('Yolo Out', boxed_frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+		# Set Recording parameters
+		if FLAGS.record != None:
+			fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
+			out = cv2.VideoWriter(FLAGS.record, fourcc, 29.0, (488,488))
 
-        print('Finished!')
-        cap.release()
-        cv2.destroyAllWindows()
+		while(cap.isOpened()):
+			ret, frame = cap.read()
+			frame_num = frame_num + 1
 
-    elif FLAGS.image != None:
-        print("Processing image")
-        # Test
-        proc_im = proc_load_image(cv2.imread(FLAGS.image), (448,448))
-        im = cv2.resize(cv2.imread(FLAGS.image), (448,448))
-        boxes = yolo.process(proc_im, thresholds=[0.1,0.1], classes=[6,14], iou_threshold=0.4)
-        boxed_im, boxes = draw_box(boxes,im)
-        cv2.imwrite('out.jpg', cv2.cvtColor(boxed_im,cv2.COLOR_BGR2RGB))
-    else:
-        print('No file specified')
+			# Break if no more
+			if ret == False:
+				break
+
+			# Yolo Processing
+			# We will be calling the detecter every so often to help alleviate accumulating tracking error
+			if frame_num % detect_rate == 0:
+				proc_frame = proc_load_image(frame, (448,448))
+				boxes = yolo.process(proc_frame, thresholds=[0.17,0.17], classes=[6,14], iou_threshold=0.4)
+
+			# Tracking processing
+			if frame_num == 1:
+				init_tracker(boxes, frame, alg)
+			elif frame_num % detect_rate == 0:
+				reset_tracker(boxes, frame)
+			else:
+				boxes = track_objects(boxes, frame)
+
+			# Display
+			boxed_frame, boxes = draw_box(boxes,cv2.resize(frame,(488,488)))
+			cv2.imshow('Yolo Out', boxed_frame)
+
+			# Save to file
+			if FLAGS.record != None:
+				out.write(boxed_frame)
+
+			if cv2.waitKey(1) & 0xFF == ord('q'):
+				break
+
+		print('Finished!')
+		cap.release()
+		cv2.destroyAllWindows()
+
+	elif FLAGS.image != None:
+		print("Processing image")
+		# Test
+		proc_im = proc_load_image(cv2.imread(FLAGS.image), (448,448))
+		im = cv2.resize(cv2.imread(FLAGS.image), (448,448))
+		boxes = yolo.process(proc_im, thresholds=[0.1,0.1], classes=[6,14], iou_threshold=0.4)
+		boxed_im, boxes = draw_box(boxes,im)
+		cv2.imwrite('out.jpg', cv2.cvtColor(boxed_im,cv2.COLOR_BGR2RGB))
+	else:
+		print('No file specified')
+
