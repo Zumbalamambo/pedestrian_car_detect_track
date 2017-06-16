@@ -1,6 +1,8 @@
 *.pyc
 weights/*
 data/*
+*.avi
+*.mp4
 
 !weights/.gitkeep
 !data/.gitkeep

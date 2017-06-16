@@ -5,7 +5,6 @@ import numpy as np
 import tensorflow as tf
 import cv2
 import keras
-import matplotlib.pyplot as plt
 from functools import reduce
 from keras.layers.core import Flatten, Dense, Activation, Reshape
 from keras.layers.advanced_activations import LeakyReLU

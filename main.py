@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
             # Yolo Processing
             proc_frame = proc_load_image(frame, (448,448))
-            boxes = yolo.process(proc_frame, thresholds=[0.1,0.1], classes=[6,14], iou_threshold=0.4)
+            boxes = yolo.process(proc_frame, thresholds=[0.17,0.17], classes=[6,14], iou_threshold=0.4)
             boxed_frame = draw_box(boxes,cv2.resize(frame,(488,488)))
 
             # Save to file
