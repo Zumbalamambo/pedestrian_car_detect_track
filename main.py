@@ -3,7 +3,6 @@ import tiny_yolo_net
 import tensorflow as tf
 import cv2
 import keras
-import matplotlib.pyplot as plt
 
 # Define Flags
 flags = tf.app.flags
@@ -12,21 +11,6 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('video', None, 'Video file to run through the network.')
 flags.DEFINE_string('image', None, 'Image file to run through the network.')
 flags.DEFINE_string('record', False, 'Output of recorded yolo.')
-
-def load_weights(model,yolo_weight_file):
-    data = np.fromfile(yolo_weight_file,np.float32)
-    data=data[4:]
-
-    index = 0
-    for layer in model.layers:
-        shape = [w.shape for w in layer.get_weights()]
-        if shape != []:
-            kshape,bshape = shape
-            bia = data[index:index+np.prod(bshape)].reshape(bshape)
-            index += np.prod(bshape)
-            ker = data[index:index+np.prod(kshape)].reshape(kshape)
-            index += np.prod(kshape)
-            layer.set_weights([ker,bia])
 
 
 # Will load and image and pre-process it for yolo_net
@@ -62,8 +46,7 @@ if __name__ == "__main__":
     # Set the network
     print('Instantiating Tiny Yolo Net...')
     yolo = tiny_yolo_net.TinyYoloNet()
-    #yolo.set_weights('./weights/yolo-tiny.weights')
-    load_weights(yolo.net, './weights/yolo-tiny.weights')
+    yolo.set_weights('./weights/yolo-tiny.weights')
 
     if FLAGS.video != None:
         print('Processing video...')
