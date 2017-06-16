@@ -13,7 +13,7 @@ flags.DEFINE_string('video', None, 'Video file to run through the network.')
 flags.DEFINE_string('image', None, 'Image file to run through the network.')
 flags.DEFINE_string('record', None, 'Output of recorded yolo.')
 flags.DEFINE_string('alg', 0, 'Tracking algorithm to run.')
-flags.DEFINE_string('detect_rate', 50, 'Rerun detection after this many frames')
+flags.DEFINE_string('detect_rate', 10, 'Rerun detection after this many frames')
 
 # define tracking algorithm options
 tracker_type = ["MIL", "BOOSTING", "MEDIANFLOW", "TLD", "KCF"]
@@ -57,12 +57,24 @@ def draw_box(boxes,im):
 
 
 def draw_tracker_box(boxes, img):
+    proc_boxes = []
     for i in range(len(boxes)):
         p1 = (int(boxes[i][0]), int(boxes[i][1]))
         p2 = (int(boxes[i][0] + boxes[i][2]), int(boxes[i][1] + boxes[i][3]))
         cv2.rectangle(img, p1, p2, (0,0,255), 5)
+        proc_boxes.append((p1, p2))
 
-    return img
+    return img, proc_boxes
+
+
+# expects boxes processed by draw_box to be passed into tracker (after being converted)
+def p1p2_to_xywh(boxes):
+    proc_boxes = []
+    for b in boxes:
+        left = b[0]; top = b[1]; right = b[2]; bot = b[3];
+        proc_boxes.append((left, top, right - left, bot - top))
+
+    return proc_boxes
 
 
 def init_tracker(boxes, frame, alg):
@@ -135,22 +147,27 @@ if __name__ == "__main__":
             # Yolo Processing
             # We will be calling the detecter every so often to help alleviate accumulating tracking error
             if frame_num % detect_rate == 0 or frame_num == 1:
-                print ("YOLO BITCHES")
+                print ("yolo bitches")
                 proc_frame = proc_load_image(frame, (448,448))
                 boxes = yolo.process(proc_frame, thresholds=[0.17,0.17], classes=[6,14], iou_threshold=0.4)
+                _, boxes = draw_box(boxes,cv2.resize(frame,(488,488)))
+                boxes = p1p2_to_xywh(boxes) # TODO: is this needed here?
+                print ("yolo out: ", boxes) 
 
                 init_tracker(boxes, frame, alg)
+                print ("here")
 
             else:
-                # Tracking processing
+                # tracking processing
+                boxes = p1p2_to_xywh(boxes) # TODO: is this needed here?
                 boxes = track_objects(boxes, frame)
 
             #print ("tracker out: ", boxes)
 
             # Display
             #boxed_frame, boxes = draw_box(boxes,cv2.resize(frame,(488,488)))
-            boxed_frame = draw_tracker_box(boxes, frame)
-            #print ("Yolo out: ", boxes)
+            boxed_frame, proc_boxes = draw_tracker_box(boxes, frame)
+            print ("Tracker out: ", proc_boxes)
             cv2.imshow('Yolo Out', boxed_frame)
 
             # Save to file
