@@ -10,10 +10,10 @@ Before running code, a file with the YOLO net weights must be downloaded and
 placed into the weights directory.
 
 To run the code:
+----------------
 python main.py --video /path/to/video
 
 Settings can be adjusted using the following flags and parameters:
-            FLAG                     parameter
 ----------------------------------------------------------------------
             --video        [video file]
             --image        [image file]
